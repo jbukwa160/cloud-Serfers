@@ -5,6 +5,18 @@ __pycache__/
 
 # C extensions
 *.so
+# --- Project data outputs (ignore generated data files) ---
+# Ignore all CSV and Parquet files
+*.csv
+*.parquet
+
+# Ignore processed/intermediate data folders
+intermediate_data/
+processed_data/
+data/electricity/intermediate/
+data/electricity/raw/
+data/housing/intermediate/
+data/housing/raw/
 
 # Distribution / packaging
 .Python

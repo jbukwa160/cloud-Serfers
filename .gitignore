@@ -8,7 +8,7 @@ __pycache__/
 # --- Project data outputs (ignore generated data files) ---
 # Ignore all CSV and Parquet files
 *.csv
-*.parquet
+
 
 # Ignore processed/intermediate data folders
 intermediate_data/

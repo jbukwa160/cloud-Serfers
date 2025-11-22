@@ -1,66 +1,70 @@
 import joblib
 import pandas as pd
 from typing import Any, Dict, Tuple
+from ..config import PYCARET_PIPELINE_PATH
 
-from ..config import PYCARET_PIPELINE_PATH  # make sure this exists in config.py
-
-
-# single cached model object (PyCaret pipeline)
+# Single cached model object (PyCaret pipeline)
 _model: Any = None
+
+# ✅ CRITICAL: These column names MUST match what the saved model expects
+# Based on your error, the model expects 'tenure' not 'duration'
+RAW_COLS = ["region", "property_type", "tenure", "year", "month", "is_new_build"]
 
 
 def load_model() -> Any:
     """
     Load the shared PyCaret pipeline from disk once and cache it.
-    This is the same model we already use for housing.
     """
     global _model
-
     if _model is None:
         if not PYCARET_PIPELINE_PATH.exists():
             raise FileNotFoundError(f"Model file not found at {PYCARET_PIPELINE_PATH}")
         _model = joblib.load(PYCARET_PIPELINE_PATH)
-
     return _model
 
 
 def predict_housing(features: Dict[str, Any]) -> float:
     """
-    Real housing prediction using the trained PyCaret pipeline.
+    Housing prediction using the trained PyCaret pipeline.
+    The pipeline expects RAW_COLS only.
     """
     model = load_model()
-
-    # Convert bool to int if model expects 0/1
+    
+    # ✅ CRITICAL FIX: Frontend/schema sends 'duration' but model expects 'tenure'
+    # So we rename it here before creating the dataframe
+    if "duration" in features and "tenure" not in features:
+        features["tenure"] = features.pop("duration")
+    
+    # ✅ Convert bool to int (0/1)
     if isinstance(features.get("is_new_build"), bool):
         features["is_new_build"] = int(features["is_new_build"])
-
-    df = pd.DataFrame([features])
-    y_pred = model.predict(df)
-    return float(y_pred[0])
+    
+    # ✅ Build row ONLY with the columns the model expects
+    row = {col: features.get(col, None) for col in RAW_COLS}
+    df = pd.DataFrame([row])
+    
+    # ✅ Ensure numeric columns are numeric type
+    df["year"] = pd.to_numeric(df["year"], errors='coerce')
+    df["month"] = pd.to_numeric(df["month"], errors='coerce')
+    df["is_new_build"] = pd.to_numeric(df["is_new_build"], errors='coerce')
+    
+    # ✅ Make the prediction
+    pred = model.predict(df)
+    return float(pred[0])
 
 
 def predict_electricity(features: Dict[str, Any]) -> float:
     """
-    *** CHEAT VERSION for electricity ***
-
-    We do NOT have a real electricity model.
-    To keep the backend and frontend working, we reuse the housing model.
-
-    We build a fake housing feature set from the electricity inputs:
-      - region, property_type, tenure, is_new_build are hard-coded defaults
-      - year and month come from the electricity request
+    Placeholder using housing model (since you don't have electricity model yet).
     """
-    # Map electricity features to fake housing features
     fake_housing_features = {
-        "region": "Unknown",           # dummy region
-        "property_type": "D",          # dummy property type
-        "tenure": "F",                 # dummy tenure
-        "year": features.get("year"),
-        "month": features.get("month"),
-        "is_new_build": 0,             # treat as not new-build
+        "region": "East Midlands",
+        "property_type": "D",
+        "duration": "F",  # Will be converted to 'tenure' inside predict_housing
+        "year": features.get("year", 2015),
+        "month": features.get("month", 7),
+        "is_new_build": 0,
     }
-
-    # Reuse the housing prediction logic
     return predict_housing(fake_housing_features)
 
 
@@ -72,7 +76,6 @@ def check_models_available() -> Tuple[bool, bool]:
     try:
         model = load_model()
         ok = model is not None
-        # we pretend we have both housing & electricity models
         return ok, ok
     except Exception:
         return False, False

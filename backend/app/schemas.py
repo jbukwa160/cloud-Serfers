@@ -10,9 +10,9 @@ class HousingFeatures(BaseModel):
         ...,
         description="Property type, e.g. D/S/T/F/O"
     )
-    tenure: str = Field(
-        ...,
-        description="Tenure, e.g. F (Freehold), L (Leasehold), U (Unknown)"
+    duration: str = Field(
+        ..., 
+        description="Duration, e.g. F (Freehold), L (Leasehold), U (Unknown)", 
     )
     year: int = Field(..., ge=1995, le=2050, description="Year of sale")
     month: int = Field(..., ge=1, le=12, description="Month of sale (1–12)")

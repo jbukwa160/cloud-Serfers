@@ -7,3 +7,5 @@ joblib
 python-dotenv
 pycaret
 xgboost
+lightgbm
+numpy

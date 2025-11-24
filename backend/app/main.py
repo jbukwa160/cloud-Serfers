@@ -14,6 +14,12 @@ from .services.model_service import (
     check_models_available,
 )
 
+app = FastAPI()
+
+@app.get("/")
+def root():
+    return {"message": "API is running. Go to /docs for Swagger UI."}
+
 app = FastAPI(
     title="Cloud-Serfers ML Backend",
     description="Backend API for UK Housing & Electricity demand predictions",
